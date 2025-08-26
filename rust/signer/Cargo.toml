@@ -1,0 +1,102 @@
+[package]
+name = "odis-signer"
+version = "0.1.0"
+edition = "2021"
+authors = ["Celo Labs <hello@celo.org>"]
+description = "ODIS Signer service - Rust implementation"
+license = "Apache-2.0"
+repository = "https://github.com/celo-org/social-connect"
+keywords = ["odis", "threshold", "cryptography", "privacy"]
+categories = ["cryptography", "web-programming"]
+
+[dependencies]
+# Core async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Configuration management
+config = "0.13"
+envy = "0.4"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+tracing-bunyan-formatter = "0.3"
+
+# HTTP server framework
+axum = "0.7"
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.4", features = ["cors", "trace", "timeout"] }
+hyper = "1.0"
+
+# Database ORM
+sea-orm = { version = "0.12", features = ["sqlx-postgres", "sqlx-mysql", "sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
+
+# Utilities
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Metrics
+metrics = "0.21"
+metrics-exporter-prometheus = "0.12"
+
+# Cryptography (to be added when available)
+# celo-threshold-bls-rs = { git = "https://github.com/celo-org/celo-threshold-bls-rs" }
+
+# Cloud key management (to be added in Phase 4)
+# azure_security_keyvault = "0.17"
+# azure_identity = "0.17"
+# azure_core = "0.17"
+# google-cloud-storage = "0.15"
+# google-cloud-auth = "0.13"
+# aws-sdk-secretsmanager = "1.0"
+# aws-config = "1.0"
+
+# Ethereum integration (to be added in Phase 6)
+# ethers = "2.0"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.0"
+
+[[bin]]
+name = "odis-signer"
+path = "src/main.rs"
+
+[profile.release]
+# Optimize for performance in release builds
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+# Faster compilation in development
+opt-level = 0
+debug = true
+
+[lints.clippy]
+# Performance lints
+inefficient_to_string = "warn"
+manual_let_else = "warn"
+redundant_clone = "warn"
+single_char_pattern = "warn"
+trivially_copy_pass_by_ref = "warn"
+
+# Correctness lints
+unsafe_code = "forbid"
+
+# Style lints
+missing_debug_implementations = "warn"
+unused_qualifications = "warn"
+variant_size_differences = "warn"
+
+# Complexity lints
+cognitive_complexity = "warn"
+too_many_arguments = "warn"
+type_complexity = "warn"

@@ -22,11 +22,11 @@
 ## Phase 1: Foundation & Setup (Weeks 1-2)
 
 ### Step 1.1: Project Setup
-- [ ] Create new Rust workspace in `rust/signer/`
-- [ ] Set up Cargo.toml with initial dependencies
-- [ ] Configure CI/CD for Rust builds
-- [ ] Set up development tooling (rustfmt, clippy, etc.)
-- [ ] **Deliverable**: Basic Rust project that compiles and runs "Hello World"
+- [x] Create new Rust workspace in `rust/signer/`
+- [x] Set up Cargo.toml with initial dependencies
+- [x] Configure CI/CD for Rust builds
+- [x] Set up development tooling (rustfmt, clippy, etc.)
+- [x] **Deliverable**: Basic Rust project that compiles and runs "Hello World"
 
 ### Step 1.2: Configuration System
 - [ ] Port configuration parsing from TypeScript to Rust

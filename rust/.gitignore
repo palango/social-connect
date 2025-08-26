@@ -1,0 +1,29 @@
+# Cargo.lock files should generally be committed for applications
+# See: https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html
+Cargo.lock
+
+# Build artifacts
+/target/
+*/target/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+
+# Test artifacts
+coverage/
+*.profraw
+
+# Temporary files
+*.tmp
+*.temp

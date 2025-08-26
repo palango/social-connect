@@ -1,0 +1,39 @@
+[package]
+name = "signer"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+authors = ["Celo Labs <hello@celo.org>"]
+description = "ODIS Signer service binary"
+license = "Apache-2.0"
+repository = "https://github.com/celo-org/social-connect"
+
+[dependencies]
+# Use workspace dependencies
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+config = { workspace = true }
+envy = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-bunyan-formatter = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+hyper = { workspace = true }
+sea-orm = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+metrics = { workspace = true }
+metrics-exporter-prometheus = { workspace = true }
+
+[dev-dependencies]
+tokio-test = { workspace = true }
+tempfile = { workspace = true }
+
+[[bin]]
+name = "signer"
+path = "src/main.rs"

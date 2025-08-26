@@ -1,0 +1,34 @@
+# Clippy configuration for the ODIS Signer
+# This file configures Rust's linter (clippy) for stricter code quality
+
+# Clippy configuration in Cargo.toml would go in [lints.clippy] section
+# For now, we'll document the key lints we want to enable:
+
+# Performance lints
+warn = [
+    "inefficient_to_string",
+    "manual_let_else",
+    "redundant_clone",
+    "single_char_pattern",
+    "trivially_copy_pass_by_ref",
+]
+
+# Correctness lints
+forbid = [
+    "unsafe_code",  # No unsafe code in this codebase
+]
+
+# Style lints  
+warn = [
+    "missing_docs",
+    "missing_debug_implementations",
+    "unused_qualifications",
+    "variant_size_differences",
+]
+
+# Complexity lints
+warn = [
+    "cognitive_complexity",
+    "too_many_arguments",
+    "type_complexity",
+]
