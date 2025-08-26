@@ -1,6 +1,6 @@
 # Cargo.lock files should generally be committed for applications
 # See: https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html
-Cargo.lock
+# Cargo.lock
 
 # Build artifacts
 /target/
