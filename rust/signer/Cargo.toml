@@ -20,7 +20,7 @@ sha2 = "0.10"
 serde_json = "1"
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
 thiserror = "2"
-threshold-bls = { git = "https://github.com/celo-org/celo-threshold-bls-rs", package = "threshold-bls" }
+threshold-bls = { git = "https://github.com/celo-org/celo-threshold-bls-rs", package = "threshold-bls", rev = "a43b4cae872c65993bd6ba781e0ef3757f4f2cd9" }
 tokio = { version = "1", features = ["full"] }
 metrics = "0.24"
 metrics-exporter-prometheus = "0.16"
@@ -33,6 +33,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 alloy-signer = "1"
 alloy-signer-local = "1"
 http-body-util = "0.1"
-rand_chacha = "0.2"
-rand_core = "0.5"
+rand_chacha = "0.3"
+rand_core = "0.6"
 tempfile = "3"
