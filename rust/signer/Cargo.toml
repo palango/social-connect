@@ -5,7 +5,7 @@ authors.workspace = true
 version.workspace = true
 
 [dependencies]
-alloy = { version = "1", features = ["contract", "k256", "provider-http", "rpc-types", "sol-types"] }
+alloy = { version = "2", features = ["contract", "k256", "provider-http", "rpc-types", "sol-types"] }
 async-trait = "0.1"
 axum = "0.8"
 base64 = "0.22"
@@ -30,8 +30,8 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
-alloy-signer = "1"
-alloy-signer-local = "1"
+alloy-signer = "2"
+alloy-signer-local = "2"
 http-body-util = "0.1"
 rand_chacha = "0.3"
 rand_core = "0.6"
