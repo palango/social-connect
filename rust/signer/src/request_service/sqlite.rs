@@ -6,6 +6,11 @@ use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, S
 use super::PnpRequestService;
 use crate::errors::OdisError;
 
+/// Accounts and requests are keyed by the EIP-55 checksummed address string
+/// (`Address::to_string()`). The TS signer keys on the raw client-supplied string.
+/// Reads and writes here both go through `to_string()`, so dedup/quota stay internally
+/// consistent. Reusing a SQLite DB populated by the TS signer would mismatch on casing
+/// and lose quota/dedup history — start fresh when migrating from TS.
 pub struct SqlitePnpRequestService {
     pool: SqlitePool,
 }

@@ -23,9 +23,9 @@ impl<S: Send + Sync> FromRequestParts<S> for KeyVersion {
             .get(KEY_VERSION_HEADER)
             .and_then(|v| v.to_str().ok());
         match parse_key_version_header(value) {
-            Some(Ok(v)) => Ok(KeyVersion(Some(v))),
-            Some(Err(())) => Err(OdisError::InvalidKeyVersion),
-            None => Ok(KeyVersion(None)),
+            KeyVersionHeader::Valid(v) => Ok(KeyVersion(Some(v))),
+            KeyVersionHeader::Invalid => Err(OdisError::InvalidKeyVersion),
+            KeyVersionHeader::Absent => Ok(KeyVersion(None)),
         }
     }
 }
@@ -114,15 +114,29 @@ fn is_valid_blinded_phone_number(value: &str) -> bool {
             .is_ok()
 }
 
-/// Parses the key version header value. Returns `None` if absent or empty.
-/// Returns `Some(Ok(version))` for valid integers >= 0, `Some(Err(()))` for invalid values.
+/// Outcome of parsing the optional key version header.
 /// Matches TS `getRequestKeyVersion` / `parseKeyVersionFromHeader`.
-fn parse_key_version_header(value: Option<&str>) -> Option<Result<u32, ()>> {
-    let value = value?.trim();
+enum KeyVersionHeader {
+    /// Header absent, empty, or literally `"undefined"`.
+    Absent,
+    /// A valid non-negative integer version.
+    Valid(u32),
+    /// Present but not a valid version.
+    Invalid,
+}
+
+fn parse_key_version_header(value: Option<&str>) -> KeyVersionHeader {
+    let value = match value {
+        Some(v) => v.trim(),
+        None => return KeyVersionHeader::Absent,
+    };
     if value.is_empty() || value == "undefined" {
-        return None;
+        return KeyVersionHeader::Absent;
     }
-    Some(value.parse::<u32>().map_err(|_| ()))
+    match value.parse::<u32>() {
+        Ok(v) => KeyVersionHeader::Valid(v),
+        Err(_) => KeyVersionHeader::Invalid,
+    }
 }
 
 #[cfg(test)]
@@ -170,21 +184,26 @@ mod tests {
 
     #[test]
     fn key_version_header_parsing() {
-        // Absent, empty, "undefined" → None
-        assert!(parse_key_version_header(None).is_none());
-        assert!(parse_key_version_header(Some("")).is_none());
-        assert!(parse_key_version_header(Some("  ")).is_none());
-        assert!(parse_key_version_header(Some("undefined")).is_none());
+        use KeyVersionHeader::*;
+
+        // Absent, empty, "undefined" → Absent
+        assert!(matches!(parse_key_version_header(None), Absent));
+        assert!(matches!(parse_key_version_header(Some("")), Absent));
+        assert!(matches!(parse_key_version_header(Some("  ")), Absent));
+        assert!(matches!(
+            parse_key_version_header(Some("undefined")),
+            Absent
+        ));
 
         // Valid integers
-        assert_eq!(parse_key_version_header(Some("1")), Some(Ok(1)));
-        assert_eq!(parse_key_version_header(Some(" 3 ")), Some(Ok(3)));
-        assert_eq!(parse_key_version_header(Some("0")), Some(Ok(0)));
+        assert!(matches!(parse_key_version_header(Some("1")), Valid(1)));
+        assert!(matches!(parse_key_version_header(Some(" 3 ")), Valid(3)));
+        assert!(matches!(parse_key_version_header(Some("0")), Valid(0)));
 
         // Invalid
-        assert_eq!(parse_key_version_header(Some("abc")), Some(Err(())));
-        assert_eq!(parse_key_version_header(Some("-1")), Some(Err(())));
-        assert_eq!(parse_key_version_header(Some("1.5")), Some(Err(())));
+        assert!(matches!(parse_key_version_header(Some("abc")), Invalid));
+        assert!(matches!(parse_key_version_header(Some("-1")), Invalid));
+        assert!(matches!(parse_key_version_header(Some("1.5")), Invalid));
     }
 
     #[test]

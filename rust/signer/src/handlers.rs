@@ -1,8 +1,9 @@
 use ::metrics::{counter, histogram};
+use alloy::primitives::Address;
 use axum::Json;
 use axum::body::Bytes;
 use axum::extract::State;
-use axum::http::HeaderMap;
+use axum::http::{HeaderMap, HeaderValue};
 use axum::response::IntoResponse;
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 
@@ -18,6 +19,38 @@ use crate::types::{
 /// Duplicate request warning, matching TS `WarningMessage.DUPLICATE_REQUEST_TO_GET_PARTIAL_SIG`.
 const DUPLICATE_REQUEST_WARNING: &str =
     "CELO_ODIS_WARN_04 BAD_INPUT Attempt to replay partial signature request";
+
+impl AppState {
+    /// Compute a fresh blind partial signature for `blinded_query` and record the request.
+    /// Returns the base64-encoded signature.
+    async fn sign_and_record(
+        &self,
+        account: Address,
+        blinded_query: &str,
+        key_version: u32,
+    ) -> Result<String, OdisError> {
+        let hex_key = self
+            .key_provider
+            .get_key(&self.config.pnp_key_name_base, key_version)
+            .await?;
+        let key_bytes = hex::decode(&hex_key).map_err(|_| OdisError::KeyFetchError)?;
+        let blinded_msg = BASE64
+            .decode(blinded_query)
+            .map_err(|_| OdisError::InvalidInput)?;
+        let sig_bytes = crate::crypto::compute_blinded_signature(&blinded_msg, &key_bytes)
+            .map_err(|_| {
+                counter!(metric_names::SIGNATURE_COMPUTATION_ERRORS).increment(1);
+                OdisError::SignatureComputationFailure
+            })?;
+        let signature = BASE64.encode(&sig_bytes);
+
+        self.request_service
+            .record_request(account, blinded_query, &signature)
+            .await?;
+
+        Ok(signature)
+    }
+}
 
 /// Domain endpoints are not yet implemented in the Rust port.
 /// Return 503 ApiUnavailable, matching the TS signer's disabled-API behavior.
@@ -37,6 +70,15 @@ pub async fn status_handler() -> impl IntoResponse {
     Json(serde_json::json!({
         "version": env!("CARGO_PKG_VERSION"),
     }))
+}
+
+/// Increment the wallet-address request counter for explicit wallet-key requests.
+/// Mirrors the TS actions, which count only `AuthenticationMethod.WALLET_KEY`
+/// (not the absent case) and do so before the authentication check.
+fn count_wallet_key_request(authentication_method: Option<AuthenticationMethod>) {
+    if authentication_method == Some(AuthenticationMethod::WalletKey) {
+        counter!(metric_names::REQUESTS_WITH_WALLET_ADDRESS).increment(1);
+    }
 }
 
 /// Check authentication. Returns `Err(401)` on failure.
@@ -71,7 +113,12 @@ pub async fn pnp_quota_handler(
     let request: PnpQuotaRequest =
         serde_json::from_slice(&body).map_err(|_| OdisError::InvalidInput)?;
 
+    // A full-node failure here surfaces as a 500 rather than a soft auth failure;
+    // the account (incl. DEK) is fetched once up front, unlike the TS signer which
+    // fetches the DEK lazily inside the auth check.
     let account = state.account_service.get_account(request.account).await?;
+
+    count_wallet_key_request(request.authentication_method);
 
     if state.config.blockchain_provider.is_some() {
         check_auth(
@@ -114,6 +161,8 @@ pub async fn pnp_sign_handler(
 
     let account = state.account_service.get_account(request.account).await?;
 
+    count_wallet_key_request(request.authentication_method);
+
     if state.config.blockchain_provider.is_some() {
         check_auth(
             &body,
@@ -122,10 +171,6 @@ pub async fn pnp_sign_handler(
             request.authentication_method,
             &account.dek,
         )?;
-    }
-
-    if request.authentication_method != Some(AuthenticationMethod::EncryptionKey) {
-        counter!(metric_names::REQUESTS_WITH_WALLET_ADDRESS).increment(1);
     }
 
     let duplicate_sig = state
@@ -157,37 +202,18 @@ pub async fn pnp_sign_handler(
         counter!(metric_names::DUPLICATE_REQUESTS).increment(1);
         (sig, used_quota, vec![DUPLICATE_REQUEST_WARNING.to_string()])
     } else {
-        // Fetch key and compute signature
-        let hex_key = state
-            .key_provider
-            .get_key(&state.config.pnp_key_name_base, key_version)
-            .await?;
-        let key_bytes = hex::decode(&hex_key).map_err(|_| OdisError::KeyFetchError)?;
-        let blinded_msg = BASE64
-            .decode(&request.blinded_query_phone_number)
-            .map_err(|_| OdisError::InvalidInput)?;
-        let sig_bytes = crate::crypto::compute_blinded_signature(&blinded_msg, &key_bytes)
-            .map_err(|_| {
-                counter!(metric_names::SIGNATURE_COMPUTATION_ERRORS).increment(1);
-                OdisError::SignatureComputationFailure
-            })?;
-        let signature = BASE64.encode(&sig_bytes);
-
-        // Record the request
-        state
-            .request_service
-            .record_request(
+        let signature = state
+            .sign_and_record(
                 request.account,
                 &request.blinded_query_phone_number,
-                &signature,
+                key_version,
             )
             .await?;
-
         (signature, used_quota.saturating_add(1), vec![])
     };
 
     let mut response_headers = HeaderMap::new();
-    response_headers.insert(KEY_VERSION_HEADER, key_version.to_string().parse().unwrap());
+    response_headers.insert(KEY_VERSION_HEADER, HeaderValue::from(key_version));
 
     Ok((
         response_headers,

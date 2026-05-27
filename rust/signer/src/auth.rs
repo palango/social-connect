@@ -30,6 +30,12 @@ impl<S: Send + Sync> FromRequestParts<S> for Authorization {
 /// Tries DEK verification first (when `authentication_method` is `EncryptionKey` and a DEK
 /// public key is available), then falls back to wallet key (EIP-191 personal_sign) verification.
 ///
+/// The signed message is the raw request `body` bytes exactly as received. The TS reference
+/// verifies against `JSON.stringify(request.body)` (express parses then re-serializes). These
+/// are equivalent only when the client transmits the exact bytes it signed, which ODIS clients
+/// do (they POST the `JSON.stringify` output verbatim). Whitespace- or key-order-divergent JSON
+/// would fail here even if it passed in TS.
+///
 /// Matches the TS `authenticateUser` in `packages/common/src/utils/authentication.ts`.
 pub fn authenticate_user(
     body: &[u8],

@@ -93,6 +93,8 @@ pub async fn build_router_with_services(
     let request_service: Arc<dyn PnpRequestService> =
         Arc::new(MeteredPnpRequestService::new(inner_request_service));
 
+    // Idempotent: the global recorder is installed once (guarded by OnceLock), so it is
+    // safe that tests build many routers.
     let metrics_handle = metrics::install_recorder();
 
     let state = AppState {
